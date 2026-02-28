@@ -1,159 +1,145 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Çöl Kale Savaşı</title>
+<meta charset="UTF-8">
+<title>Çöl Kale Savaşı</title>
+<style>
+body{
+  margin:0;
+  background:linear-gradient(#e2b86b,#cfa158);
+  overflow:hidden;
+  font-family:sans-serif;
+}
+#battlefield{
+  position:relative;
+  width:100vw;
+  height:100vh;
+}
+.castle{
+  position:absolute;
+  font-size:50px;
+}
+#redCastle{left:5%;top:50%}
+#blueCastle{right:5%;top:30%}
+#greenCastle{right:5%;top:70%}
 
-  <style>
-    body {
-      margin: 0;
-      background: linear-gradient(#e2b56d, #d9b06c);
-      font-family: Arial;
-      overflow: hidden;
-    }
+.soldier{
+  position:absolute;
+  font-size:20px;
+}
 
-    h1 {
-      text-align: center;
-    }
+.health{
+  position:absolute;
+  font-weight:bold;
+  font-size:18px;
+}
 
-    #battlefield {
-      position: relative;
-      width: 100%;
-      height: 90vh;
-    }
-
-    .castle {
-      position: absolute;
-      font-size: 60px;
-      text-align: center;
-    }
-
-    #redCastle { left: 10%; top: 50%; }
-    #blueCastle { right: 10%; top: 30%; }
-    #greenCastle { right: 10%; top: 70%; }
-
-    .hp {
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    .soldier {
-      position: absolute;
-      font-size: 28px;
-    }
-  </style>
+#winner{
+  position:absolute;
+  top:40%;
+  width:100%;
+  text-align:center;
+  font-size:60px;
+  font-weight:bold;
+  display:none;
+  animation:glow 1s infinite alternate;
+}
+@keyframes glow{
+  from{ text-shadow:0 0 10px white }
+  to{ text-shadow:0 0 30px yellow }
+}
+</style>
 </head>
-
 <body>
 
-<h1>🏜️ Çöl Kale Savaşı</h1>
-
 <div id="battlefield">
+  <div id="redCastle" class="castle">🏰</div>
+  <div id="blueCastle" class="castle">🏰</div>
+  <div id="greenCastle" class="castle">🏰</div>
 
-  <div id="redCastle" class="castle">
-    🏰
-    <div class="hp">❤️ <span id="redHealth">100</span></div>
-  </div>
-
-  <div id="blueCastle" class="castle">
-    🏰
-    <div class="hp">💙 <span id="blueHealth">100</span></div>
-  </div>
-
-  <div id="greenCastle" class="castle">
-    🏰
-    <div class="hp">💚 <span id="greenHealth">100</span></div>
-  </div>
-
+  <div id="winner"></div>
 </div>
 
 <script>
+let state=null
+let soldiers=[]
 
-function spawn(team){
-  const s = document.createElement("div")
-  s.className = "soldier"
-  s.innerText = "⚔️"
-
-  if(team === "red"){
-    s.style.left = "10%"
-    s.style.top = "50%"
-  }
-
-  if(team === "blue"){
-    s.style.left = "80%"
-    s.style.top = "30%"
-  }
-
-  if(team === "green"){
-    s.style.left = "80%"
-    s.style.top = "70%"
-  }
-
-  document.getElementById("battlefield").appendChild(s)
-
-  setTimeout(() => {
-    s.remove()
-  }, 2000)
+async function fetchState(){
+  const res=await fetch("/state")
+  state=await res.json()
 }
 
-async function update(){
-  const res = await fetch("/state")
-  const data = await res.json()
+function render(){
+  document.querySelectorAll(".soldier").forEach(e=>e.remove())
 
-  document.getElementById("redHealth").innerText = data.red.health
-  document.getElementById("blueHealth").innerText = data.blue.health
-  document.getElementById("greenHealth").innerText = data.green.health
-
-  if(data.red.health <= 0){
-    alert("❤️ RED KALE YIKILDI!")
-  }
-  if(data.blue.health <= 0){
-    alert("💙 BLUE KALE YIKILDI!")
-  }
-  if(data.green.health <= 0){
-    alert("💚 GREEN KALE YIKILDI!")
+  for(let team in state){
+    state[team].soldiers.forEach(s=>{
+      const el=document.createElement("div")
+      el.className="soldier"
+      el.innerText="⚔️"
+      el.style.left=s.x+"%"
+      el.style.top=s.y+"%"
+      el.style.color=team
+      document.body.appendChild(el)
+    })
   }
 }
 
-setInterval(update, 1000)
+function update(){
+  for(let team in state){
+    if(!state[team].alive) continue
 
-</script><script>
-let lastHealth = { red: 100, blue: 100, green: 100 }
+    state[team].soldiers.forEach(s=>{
+      if(team==="red") s.x+=0.5
+      else s.x-=0.5
 
-function spawn(team){
-    const s = document.createElement("div")
-    s.className = "soldier"
-    s.innerText = "⚔️"
+      const enemies=Object.keys(state)
+        .filter(t=>t!==team && state[t].alive)
 
-    if(team==="red"){
-        s.style.left="15%"
-        s.style.top="55%"
-    }
-    if(team==="blue"){
-        s.style.left="75%"
-        s.style.top="35%"
-    }
-    if(team==="green"){
-        s.style.left="75%"
-        s.style.top="70%"
-    }
+      if(enemies.length===0){
+        declareWinner(team)
+      }
 
-    document.getElementById("battlefield").appendChild(s)
+      enemies.forEach(enemy=>{
+        state[enemy].soldiers.forEach(es=>{
+          if(Math.abs(s.x-es.x)<1 && Math.abs(s.y-es.y)<1){
+            s.hp=0
+            es.hp=0
+          }
+        })
+      })
 
-    setTimeout(()=>{ s.remove() },2000)
-}
-
-async function update(){
-    const res = await fetch("/state")
-    const data = await res.json()
-
-    for (let team in data){
-        if(data[team].health < lastHealth[team]){
-            spawn(team)
-            lastHealth[team] = data[team].health
+      if(s.x<5 || s.x>95){
+        const target=team==="red"?"blue":"red"
+        if(state[target]){
+          state[target].health-=1
+          if(state[target].health<=0){
+            state[target].alive=false
+          }
         }
-    }
+      }
+    })
+
+    state[team].soldiers=state[team].soldiers.filter(s=>s.hp>0)
+  }
 }
 
-setInterval(update, 1000)
+function declareWinner(team){
+  document.getElementById("winner").style.display="block"
+  document.getElementById("winner").innerText=
+    "🔥 "+team.toUpperCase()+" TAKIMI ZAFER KAZANDI 🔥"
+
+  setTimeout(()=>location.reload(),5000)
+}
+
+async function gameLoop(){
+  await fetchState()
+  update()
+  render()
+  requestAnimationFrame(gameLoop)
+}
+
+gameLoop()
 </script>
+</body>
+</html>
