@@ -1,7 +1,7 @@
 const express = require("express")
 const app = express()
 app.use(express.json())
-
+app.use(express.static("public"))
 let teams = {
   red: 0,
   blue: 0,
@@ -20,3 +20,4 @@ app.get("/teams", (req, res) => {
 })
 
 app.listen(process.env.PORT || 3000)
+
