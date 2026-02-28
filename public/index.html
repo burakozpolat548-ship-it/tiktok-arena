@@ -11,9 +11,7 @@ body{
   text-align:center;
 }
 
-h1{
-  margin:10px;
-}
+h1{margin:10px}
 
 #battlefield{
   position:relative;
@@ -23,7 +21,7 @@ h1{
 
 .castle{
   position:absolute;
-  font-size:70px;
+  font-size:80px;
 }
 
 #redCastle{ left:5%; top:50%; transform:translateY(-50%); }
@@ -32,8 +30,27 @@ h1{
 
 .soldier{
   position:absolute;
-  font-size:25px;
-  transition:0.05s linear;
+  font-size:28px;
+  transition:0.03s linear;
+}
+
+.explosion{
+  position:absolute;
+  font-size:40px;
+  animation:boom 0.5s forwards;
+}
+
+@keyframes boom{
+  0%{transform:scale(1)}
+  100%{transform:scale(2); opacity:0}
+}
+
+#winner{
+  position:absolute;
+  top:40%;
+  width:100%;
+  font-size:60px;
+  display:none;
 }
 </style>
 </head>
@@ -45,31 +62,29 @@ h1{
   <div id="redCastle" class="castle">🏰</div>
   <div id="blueCastle" class="castle">🏰</div>
   <div id="greenCastle" class="castle">🏰</div>
+  <div id="winner"></div>
 </div>
 
 <script>
 
-let soldiers = []
+let soldiers=[]
+let score={red:0,blue:0,green:0}
 
 function spawnSoldier(team){
-  const s = document.createElement("div")
+  const s=document.createElement("div")
   s.className="soldier"
   s.innerText="⚔️"
-
-  const field = document.getElementById("battlefield")
 
   if(team=="red"){
     s.style.left="8%"
     s.style.top="50%"
     s.dataset.dx=1
   }
-
   if(team=="blue"){
     s.style.left="85%"
     s.style.top="30%"
     s.dataset.dx=-1
   }
-
   if(team=="green"){
     s.style.left="85%"
     s.style.top="70%"
@@ -77,23 +92,31 @@ function spawnSoldier(team){
   }
 
   s.dataset.team=team
-
-  field.appendChild(s)
+  document.getElementById("battlefield").appendChild(s)
   soldiers.push(s)
+}
+
+function spawnExplosion(x,y){
+  const e=document.createElement("div")
+  e.className="explosion"
+  e.innerText="💥"
+  e.style.left=x+"px"
+  e.style.top=y+"px"
+  document.getElementById("battlefield").appendChild(e)
+  setTimeout(()=>e.remove(),500)
 }
 
 function moveSoldiers(){
   soldiers.forEach((s,i)=>{
-    let x = parseFloat(s.style.left)
-    x += parseFloat(s.dataset.dx)
-    s.style.left = x + "%"
+    let x=parseFloat(s.style.left)
+    x+=parseFloat(s.dataset.dx)
+    s.style.left=x+"%"
 
-    if(x>100 || x<0){
+    if(x>100||x<0){
       s.remove()
       soldiers.splice(i,1)
     }
   })
-
   checkCollision()
 }
 
@@ -107,7 +130,8 @@ function checkCollision(){
         const ax=a.getBoundingClientRect()
         const bx=b.getBoundingClientRect()
 
-        if(Math.abs(ax.left-bx.left)<20){
+        if(Math.abs(ax.left-bx.left)<15){
+          spawnExplosion(ax.left,ax.top)
           a.remove()
           b.remove()
           soldiers.splice(j,1)
@@ -119,16 +143,39 @@ function checkCollision(){
   }
 }
 
+function showWinner(team){
+  const w=document.getElementById("winner")
+  w.innerText="👑 "+team.toUpperCase()+" KALE KAZANDI!"
+  w.style.display="block"
+  setTimeout(()=>{
+    w.style.display="none"
+    score={red:0,blue:0,green:0}
+  },4000)
+}
+
 async function update(){
   const res=await fetch("/teams")
   const data=await res.json()
 
-  if(data.red>0) spawnSoldier("red")
-  if(data.blue>0) spawnSoldier("blue")
-  if(data.green>0) spawnSoldier("green")
+  if(data.red>score.red){
+    spawnSoldier("red")
+    score.red=data.red
+  }
+  if(data.blue>score.blue){
+    spawnSoldier("blue")
+    score.blue=data.blue
+  }
+  if(data.green>score.green){
+    spawnSoldier("green")
+    score.green=data.green
+  }
+
+  if(score.red>=100) showWinner("KIRMIZI")
+  if(score.blue>=100) showWinner("MAVİ")
+  if(score.green>=100) showWinner("YEŞİL")
 }
 
-setInterval(update,2000)
+setInterval(update,1000)
 setInterval(moveSoldiers,30)
 
 </script>
