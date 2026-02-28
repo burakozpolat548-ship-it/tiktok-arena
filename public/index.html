@@ -1,68 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Çöl Savaş Arenası</title>
+<style>
+body{
+  margin:0;
+  overflow:hidden;
+  background:linear-gradient(#e0b46a,#f4d48b);
+  font-family:Arial;
+  text-align:center;
+}
+h1{margin:10px}
+#battlefield{
+  position:relative;
+  width:100%;
+  height:80vh;
+}
+.castle{
+  position:absolute;
+  font-size:80px;
+}
+#redCastle{ left:5%; top:50%; transform:translateY(-50%); }
+#blueCastle{ right:5%; top:30%; }
+#greenCastle{ right:5%; bottom:30%; }
+.soldier{
+  position:absolute;
+  font-size:28px;
+}
+</style>
+</head>
+<body>
+
+<h1>🏜️ Çöl Kale Savaşı</h1>
+
+<div id="battlefield">
+  <div id="redCastle" class="castle">🏰</div>
+  <div id="blueCastle" class="castle">🏰</div>
+  <div id="greenCastle" class="castle">🏰</div>
+</div>
+
 <script>
 
-let soldiers=[]
 let lastScore={red:0,blue:0,green:0}
 
-function spawnSoldier(team, amount){
-  for(let i=0;i<amount;i++){
-    const s=document.createElement("div")
-    s.className="soldier"
-    s.innerText="🗡️"
+function spawn(team){
+  const s=document.createElement("div")
+  s.className="soldier"
+  s.innerText="⚔️"
 
-    if(team=="red"){
-      s.style.left="10%"
-      s.style.top=(45 + Math.random()*10) + "%"
-      s.dataset.dx=0.3
-    }
-
-    if(team=="blue"){
-      s.style.left="80%"
-      s.style.top=(25 + Math.random()*10) + "%"
-      s.dataset.dx=-0.3
-    }
-
-    if(team=="green"){
-      s.style.left="80%"
-      s.style.top=(65 + Math.random()*10) + "%"
-      s.dataset.dx=-0.3
-    }
-
-    s.dataset.team=team
-    document.getElementById("battlefield").appendChild(s)
-    soldiers.push(s)
+  if(team=="red"){
+    s.style.left="10%"
+    s.style.top="50%"
   }
-}
-
-function moveSoldiers(){
-  soldiers.forEach((s)=>{
-    let x=parseFloat(s.style.left)
-    x+=parseFloat(s.dataset.dx)
-    s.style.left=x+"%"
-  })
-
-  checkCollision()
-}
-
-function checkCollision(){
-  for(let i=0;i<soldiers.length;i++){
-    for(let j=i+1;j<soldiers.length;j++){
-      const a=soldiers[i]
-      const b=soldiers[j]
-
-      if(a.dataset.team!==b.dataset.team){
-        const ax=a.getBoundingClientRect()
-        const bx=b.getBoundingClientRect()
-
-        if(Math.abs(ax.left-bx.left)<10){
-          a.remove()
-          b.remove()
-          soldiers.splice(j,1)
-          soldiers.splice(i,1)
-          return
-        }
-      }
-    }
+  if(team=="blue"){
+    s.style.left="80%"
+    s.style.top="30%"
   }
+  if(team=="green"){
+    s.style.left="80%"
+    s.style.top="70%"
+  }
+
+  document.getElementById("battlefield").appendChild(s)
 }
 
 async function update(){
@@ -70,22 +69,22 @@ async function update(){
   const data=await res.json()
 
   if(data.red>lastScore.red){
-    spawnSoldier("red", data.red-lastScore.red)
+    spawn("red")
     lastScore.red=data.red
   }
-
   if(data.blue>lastScore.blue){
-    spawnSoldier("blue", data.blue-lastScore.blue)
+    spawn("blue")
     lastScore.blue=data.blue
   }
-
   if(data.green>lastScore.green){
-    spawnSoldier("green", data.green-lastScore.green)
+    spawn("green")
     lastScore.green=data.green
   }
 }
 
 setInterval(update,1000)
-setInterval(moveSoldiers,40)
 
 </script>
+
+</body>
+</html>
