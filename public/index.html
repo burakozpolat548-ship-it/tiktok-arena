@@ -1,122 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-<title>Çöl Savaş Arenası</title>
-<style>
-body{
-  margin:0;
-  overflow:hidden;
-  background:linear-gradient(#e0b46a,#f4d48b);
-  font-family:Arial;
-  text-align:center;
-}
-
-h1{margin:10px}
-
-#battlefield{
-  position:relative;
-  width:100%;
-  height:80vh;
-}
-
-.castle{
-  position:absolute;
-  font-size:80px;
-}
-
-#redCastle{ left:5%; top:50%; transform:translateY(-50%); }
-#blueCastle{ right:5%; top:30%; }
-#greenCastle{ right:5%; bottom:30%; }
-
-.soldier{
-  position:absolute;
-  font-size:28px;
-  transition:0.03s linear;
-}
-
-.explosion{
-  position:absolute;
-  font-size:40px;
-  animation:boom 0.5s forwards;
-}
-
-@keyframes boom{
-  0%{transform:scale(1)}
-  100%{transform:scale(2); opacity:0}
-}
-
-#winner{
-  position:absolute;
-  top:40%;
-  width:100%;
-  font-size:60px;
-  display:none;
-}
-</style>
-</head>
-<body>
-
-<h1>🏜️ Çöl Kale Savaşı</h1>
-
-<div id="battlefield">
-  <div id="redCastle" class="castle">🏰</div>
-  <div id="blueCastle" class="castle">🏰</div>
-  <div id="greenCastle" class="castle">🏰</div>
-  <div id="winner"></div>
-</div>
-
 <script>
 
 let soldiers=[]
-let score={red:0,blue:0,green:0}
+let lastScore={red:0,blue:0,green:0}
 
-function spawnSoldier(team){
-  const s=document.createElement("div")
-  s.className="soldier"
-  s.innerText="⚔️"
+function spawnSoldier(team, amount){
+  for(let i=0;i<amount;i++){
+    const s=document.createElement("div")
+    s.className="soldier"
+    s.innerText="🗡️"
 
-  if(team=="red"){
-    s.style.left="8%"
-    s.style.top="50%"
-    s.dataset.dx=1
+    if(team=="red"){
+      s.style.left="10%"
+      s.style.top=(45 + Math.random()*10) + "%"
+      s.dataset.dx=0.3
+    }
+
+    if(team=="blue"){
+      s.style.left="80%"
+      s.style.top=(25 + Math.random()*10) + "%"
+      s.dataset.dx=-0.3
+    }
+
+    if(team=="green"){
+      s.style.left="80%"
+      s.style.top=(65 + Math.random()*10) + "%"
+      s.dataset.dx=-0.3
+    }
+
+    s.dataset.team=team
+    document.getElementById("battlefield").appendChild(s)
+    soldiers.push(s)
   }
-  if(team=="blue"){
-    s.style.left="85%"
-    s.style.top="30%"
-    s.dataset.dx=-1
-  }
-  if(team=="green"){
-    s.style.left="85%"
-    s.style.top="70%"
-    s.dataset.dx=-1
-  }
-
-  s.dataset.team=team
-  document.getElementById("battlefield").appendChild(s)
-  soldiers.push(s)
-}
-
-function spawnExplosion(x,y){
-  const e=document.createElement("div")
-  e.className="explosion"
-  e.innerText="💥"
-  e.style.left=x+"px"
-  e.style.top=y+"px"
-  document.getElementById("battlefield").appendChild(e)
-  setTimeout(()=>e.remove(),500)
 }
 
 function moveSoldiers(){
-  soldiers.forEach((s,i)=>{
+  soldiers.forEach((s)=>{
     let x=parseFloat(s.style.left)
     x+=parseFloat(s.dataset.dx)
     s.style.left=x+"%"
-
-    if(x>100||x<0){
-      s.remove()
-      soldiers.splice(i,1)
-    }
   })
+
   checkCollision()
 }
 
@@ -130,8 +53,7 @@ function checkCollision(){
         const ax=a.getBoundingClientRect()
         const bx=b.getBoundingClientRect()
 
-        if(Math.abs(ax.left-bx.left)<15){
-          spawnExplosion(ax.left,ax.top)
+        if(Math.abs(ax.left-bx.left)<10){
           a.remove()
           b.remove()
           soldiers.splice(j,1)
@@ -143,42 +65,27 @@ function checkCollision(){
   }
 }
 
-function showWinner(team){
-  const w=document.getElementById("winner")
-  w.innerText="👑 "+team.toUpperCase()+" KALE KAZANDI!"
-  w.style.display="block"
-  setTimeout(()=>{
-    w.style.display="none"
-    score={red:0,blue:0,green:0}
-  },4000)
-}
-
 async function update(){
   const res=await fetch("/teams")
   const data=await res.json()
 
-  if(data.red>score.red){
-    spawnSoldier("red")
-    score.red=data.red
-  }
-  if(data.blue>score.blue){
-    spawnSoldier("blue")
-    score.blue=data.blue
-  }
-  if(data.green>score.green){
-    spawnSoldier("green")
-    score.green=data.green
+  if(data.red>lastScore.red){
+    spawnSoldier("red", data.red-lastScore.red)
+    lastScore.red=data.red
   }
 
-  if(score.red>=100) showWinner("KIRMIZI")
-  if(score.blue>=100) showWinner("MAVİ")
-  if(score.green>=100) showWinner("YEŞİL")
+  if(data.blue>lastScore.blue){
+    spawnSoldier("blue", data.blue-lastScore.blue)
+    lastScore.blue=data.blue
+  }
+
+  if(data.green>lastScore.green){
+    spawnSoldier("green", data.green-lastScore.green)
+    lastScore.green=data.green
+  }
 }
 
 setInterval(update,1000)
-setInterval(moveSoldiers,30)
+setInterval(moveSoldiers,40)
 
 </script>
-
-</body>
-</html>
