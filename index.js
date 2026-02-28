@@ -10,6 +10,7 @@ let gameState = {
   green: { score: 0, health: 100 }
 }
 
+// TikTok Webhook
 app.post("/webhook", (req, res) => {
   const giftValue = req.body?.gift?.value || 1
   const team = ["red", "blue", "green"][Math.floor(Math.random() * 3)]
@@ -24,10 +25,12 @@ app.post("/webhook", (req, res) => {
   res.sendStatus(200)
 })
 
+// Oyun durumu
 app.get("/state", (req, res) => {
   res.json(gameState)
 })
 
+// Ana sayfa
 app.get("/", (req, res) => {
   res.sendFile(__dirname + "/public/index.html")
 })
