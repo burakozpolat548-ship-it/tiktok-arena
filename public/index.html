@@ -28,12 +28,6 @@ body{
   font-size:20px;
 }
 
-.health{
-  position:absolute;
-  font-weight:bold;
-  font-size:18px;
-}
-
 #winner{
   position:absolute;
   top:40%;
@@ -42,11 +36,7 @@ body{
   font-size:60px;
   font-weight:bold;
   display:none;
-  animation:glow 1s infinite alternate;
-}
-@keyframes glow{
-  from{ text-shadow:0 0 10px white }
-  to{ text-shadow:0 0 30px yellow }
+  color:white;
 }
 </style>
 </head>
@@ -56,90 +46,103 @@ body{
   <div id="redCastle" class="castle">🏰</div>
   <div id="blueCastle" class="castle">🏰</div>
   <div id="greenCastle" class="castle">🏰</div>
-
   <div id="winner"></div>
 </div>
 
 <script>
-let state=null
 let soldiers=[]
+let health={
+  red:300,
+  blue:300,
+  green:300
+}
+let alive={
+  red:true,
+  blue:true,
+  green:true
+}
 
-async function fetchState(){
-  const res=await fetch("/state")
-  state=await res.json()
+function spawn(team,amount){
+  for(let i=0;i<amount;i++){
+    soldiers.push({
+      id:Math.random(),
+      team,
+      x: team==="red"?10:90,
+      y: team==="red"?50: team==="blue"?30:70,
+      speed:0.3+Math.random()*0.3
+    })
+  }
+}
+
+async function checkSpawn(){
+  const res=await fetch("/spawn")
+  const data=await res.json()
+  data.forEach(s=>{
+    if(alive[s.team]) spawn(s.team,s.amount)
+  })
+}
+
+function update(){
+  soldiers.forEach(s=>{
+    if(!alive[s.team]) return
+
+    if(s.team==="red") s.x+=s.speed
+    else s.x-=s.speed
+
+    const enemies=soldiers.filter(e=>e.team!==s.team)
+
+    enemies.forEach(e=>{
+      if(Math.abs(s.x-e.x)<1 && Math.abs(s.y-e.y)<1){
+        s.dead=true
+        e.dead=true
+      }
+    })
+
+    if(s.x<5 || s.x>95){
+      const target=s.team==="red"?"blue":"red"
+      if(alive[target]){
+        health[target]-=2
+        if(health[target]<=0){
+          alive[target]=false
+        }
+      }
+      s.dead=true
+    }
+  })
+
+  soldiers=soldiers.filter(s=>!s.dead)
+
+  const aliveTeams=Object.keys(alive).filter(t=>alive[t])
+  if(aliveTeams.length===1){
+    document.getElementById("winner").style.display="block"
+    document.getElementById("winner").innerText=
+      "🔥 "+aliveTeams[0].toUpperCase()+" TAKIMI ZAFER 🔥"
+    setTimeout(()=>location.reload(),5000)
+  }
 }
 
 function render(){
   document.querySelectorAll(".soldier").forEach(e=>e.remove())
 
-  for(let team in state){
-    state[team].soldiers.forEach(s=>{
-      const el=document.createElement("div")
-      el.className="soldier"
-      el.innerText="⚔️"
-      el.style.left=s.x+"%"
-      el.style.top=s.y+"%"
-      el.style.color=team
-      document.body.appendChild(el)
-    })
-  }
+  soldiers.forEach(s=>{
+    const el=document.createElement("div")
+    el.className="soldier"
+    el.innerText="⚔️"
+    el.style.left=s.x+"%"
+    el.style.top=s.y+"%"
+    el.style.color=s.team
+    document.body.appendChild(el)
+  })
 }
 
-function update(){
-  for(let team in state){
-    if(!state[team].alive) continue
-
-    state[team].soldiers.forEach(s=>{
-      if(team==="red") s.x+=0.5
-      else s.x-=0.5
-
-      const enemies=Object.keys(state)
-        .filter(t=>t!==team && state[t].alive)
-
-      if(enemies.length===0){
-        declareWinner(team)
-      }
-
-      enemies.forEach(enemy=>{
-        state[enemy].soldiers.forEach(es=>{
-          if(Math.abs(s.x-es.x)<1 && Math.abs(s.y-es.y)<1){
-            s.hp=0
-            es.hp=0
-          }
-        })
-      })
-
-      if(s.x<5 || s.x>95){
-        const target=team==="red"?"blue":"red"
-        if(state[target]){
-          state[target].health-=1
-          if(state[target].health<=0){
-            state[target].alive=false
-          }
-        }
-      }
-    })
-
-    state[team].soldiers=state[team].soldiers.filter(s=>s.hp>0)
-  }
-}
-
-function declareWinner(team){
-  document.getElementById("winner").style.display="block"
-  document.getElementById("winner").innerText=
-    "🔥 "+team.toUpperCase()+" TAKIMI ZAFER KAZANDI 🔥"
-
-  setTimeout(()=>location.reload(),5000)
-}
-
-async function gameLoop(){
-  await fetchState()
+function loop(){
   update()
   render()
-  requestAnimationFrame(gameLoop)
+  requestAnimationFrame(loop)
 }
 
-gameLoop()
+setInterval(checkSpawn,500)
+loop()
 </script>
 </body>
 </html>
