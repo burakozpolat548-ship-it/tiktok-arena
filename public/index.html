@@ -1,59 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Çöl Kale Savaşı</title>
+<title>Çöl Savaş Arenası</title>
 <style>
-body {
+body{
   margin:0;
+  overflow:hidden;
+  background:linear-gradient(#e0b46a,#f4d48b);
   font-family:Arial;
-  background: linear-gradient(#d8a55d,#f2d28a);
   text-align:center;
 }
 
 h1{
-  margin-top:20px;
+  margin:10px;
 }
 
-.arena{
-  display:flex;
-  justify-content:space-around;
-  margin-top:80px;
+#battlefield{
+  position:relative;
+  width:100%;
+  height:80vh;
 }
 
 .castle{
-  width:25%;
+  position:absolute;
+  font-size:70px;
 }
 
-.tower{
-  width:100%;
-  height:200px;
-  background:#444;
-  border-radius:10px 10px 0 0;
-}
+#redCastle{ left:5%; top:50%; transform:translateY(-50%); }
+#blueCastle{ right:5%; top:30%; }
+#greenCastle{ right:5%; bottom:30%; }
 
-.red{ background:#aa2a2a; }
-.blue{ background:#2a4daa; }
-.green{ background:#2a8a2a; }
-
-.hpbar{
-  height:25px;
-  background:#222;
-  margin-top:10px;
-  border-radius:20px;
-  overflow:hidden;
-}
-
-.hp{
-  height:100%;
-  width:0%;
-  background:lime;
-  transition:0.5s;
-}
-
-#winner{
-  font-size:40px;
-  margin-top:40px;
-  display:none;
+.soldier{
+  position:absolute;
+  font-size:25px;
+  transition:0.05s linear;
 }
 </style>
 </head>
@@ -61,48 +41,96 @@ h1{
 
 <h1>🏜️ Çöl Kale Savaşı</h1>
 
-<div class="arena">
-
-  <div class="castle">
-    <div class="tower red"></div>
-    <div class="hpbar"><div id="red" class="hp"></div></div>
-  </div>
-
-  <div class="castle">
-    <div class="tower blue"></div>
-    <div class="hpbar"><div id="blue" class="hp"></div></div>
-  </div>
-
-  <div class="castle">
-    <div class="tower green"></div>
-    <div class="hpbar"><div id="green" class="hp"></div></div>
-  </div>
-
+<div id="battlefield">
+  <div id="redCastle" class="castle">🏰</div>
+  <div id="blueCastle" class="castle">🏰</div>
+  <div id="greenCastle" class="castle">🏰</div>
 </div>
 
-<div id="winner"></div>
-
 <script>
+
+let soldiers = []
+
+function spawnSoldier(team){
+  const s = document.createElement("div")
+  s.className="soldier"
+  s.innerText="⚔️"
+
+  const field = document.getElementById("battlefield")
+
+  if(team=="red"){
+    s.style.left="8%"
+    s.style.top="50%"
+    s.dataset.dx=1
+  }
+
+  if(team=="blue"){
+    s.style.left="85%"
+    s.style.top="30%"
+    s.dataset.dx=-1
+  }
+
+  if(team=="green"){
+    s.style.left="85%"
+    s.style.top="70%"
+    s.dataset.dx=-1
+  }
+
+  s.dataset.team=team
+
+  field.appendChild(s)
+  soldiers.push(s)
+}
+
+function moveSoldiers(){
+  soldiers.forEach((s,i)=>{
+    let x = parseFloat(s.style.left)
+    x += parseFloat(s.dataset.dx)
+    s.style.left = x + "%"
+
+    if(x>100 || x<0){
+      s.remove()
+      soldiers.splice(i,1)
+    }
+  })
+
+  checkCollision()
+}
+
+function checkCollision(){
+  for(let i=0;i<soldiers.length;i++){
+    for(let j=i+1;j<soldiers.length;j++){
+      const a=soldiers[i]
+      const b=soldiers[j]
+
+      if(a.dataset.team!==b.dataset.team){
+        const ax=a.getBoundingClientRect()
+        const bx=b.getBoundingClientRect()
+
+        if(Math.abs(ax.left-bx.left)<20){
+          a.remove()
+          b.remove()
+          soldiers.splice(j,1)
+          soldiers.splice(i,1)
+          return
+        }
+      }
+    }
+  }
+}
+
 async function update(){
-  const res = await fetch("/teams")
-  const data = await res.json()
+  const res=await fetch("/teams")
+  const data=await res.json()
 
-  document.getElementById("red").style.width = data.red + "%"
-  document.getElementById("blue").style.width = data.blue + "%"
-  document.getElementById("green").style.width = data.green + "%"
-
-  if(data.red>=100) showWinner("🔴 KIRMIZI KALE KAZANDI")
-  if(data.blue>=100) showWinner("🔵 MAVİ KALE KAZANDI")
-  if(data.green>=100) showWinner("🟢 YEŞİL KALE KAZANDI")
+  if(data.red>0) spawnSoldier("red")
+  if(data.blue>0) spawnSoldier("blue")
+  if(data.green>0) spawnSoldier("green")
 }
 
-function showWinner(text){
-  const win = document.getElementById("winner")
-  win.innerText = text
-  win.style.display="block"
-}
+setInterval(update,2000)
+setInterval(moveSoldiers,30)
 
-setInterval(update,1000)
 </script>
 
 </body>
