@@ -4,38 +4,38 @@ const app = express()
 app.use(express.json())
 app.use(express.static("public"))
 
-let gameState = {
-  red: { score: 0, health: 100 },
-  blue: { score: 0, health: 100 },
-  green: { score: 0, health: 100 }
+const TEAMS = ["red","blue","green"]
+
+let gameState = {}
+
+function resetGame(){
+  gameState = {
+    red:{health:300,soldiers:[],alive:true},
+    blue:{health:300,soldiers:[],alive:true},
+    green:{health:300,soldiers:[],alive:true}
+  }
 }
 
-// TikTok Webhook
-app.post("/webhook", (req, res) => {
+resetGame()
+
+app.post("/webhook",(req,res)=>{
   const giftValue = req.body?.gift?.value || 1
-  const team = ["red", "blue", "green"][Math.floor(Math.random() * 3)]
+  const team = TEAMS[Math.floor(Math.random()*3)]
 
-  gameState[team].score += giftValue * 10
-  gameState[team].health -= giftValue * 2
-
-  if (gameState[team].health < 0) {
-    gameState[team].health = 0
+  for(let i=0;i<giftValue*3;i++){
+    gameState[team].soldiers.push({
+      id: Date.now()+Math.random(),
+      x: team==="red"?10:90,
+      y: team==="red"?50: team==="blue"?30:70,
+      hp:1
+    })
   }
 
   res.sendStatus(200)
 })
 
-// Oyun durumu
-app.get("/state", (req, res) => {
+app.get("/state",(req,res)=>{
   res.json(gameState)
 })
 
-// Ana sayfa
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html")
-})
-
-const PORT = process.env.PORT || 3000
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running on port " + PORT)
-})
+app.listen(process.env.PORT || 3000,"0.0.0.0")
