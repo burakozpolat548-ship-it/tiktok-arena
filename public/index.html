@@ -1,1 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>TikTok Arena</title>
+<style>
+body {
+  background: #0f0f1a;
+  color: white;
+  font-family: Arial;
+  text-align: center;
+}
+.bar-container {
+  width: 80%;
+  margin: 30px auto;
+}
+.team {
+  margin: 25px 0;
+}
+.bar {
+  height: 40px;
+  width: 0%;
+  transition: width 0.5s ease;
+}
+.red { background: #ff3b3b; }
+.blue { background: #3b8bff; }
+.green { background: #3bff6f; }
+</style>
+</head>
+<body>
 
+<h1>TikTok Arena</h1>
+
+<div class="bar-container">
+  <div class="team">
+    <div>KIRMIZI: <span id="redScore">0</span></div>
+    <div class="bar red" id="redBar"></div>
+  </div>
+
+  <div class="team">
+    <div>MAVİ: <span id="blueScore">0</span></div>
+    <div class="bar blue" id="blueBar"></div>
+  </div>
+
+  <div class="team">
+    <div>YEŞİL: <span id="greenScore">0</span></div>
+    <div class="bar green" id="greenBar"></div>
+  </div>
+</div>
+
+<script>
+async function updateScores() {
+  const res = await fetch("/teams");
+  const data = await res.json();
+
+  const maxScore = Math.max(data.red, data.blue, data.green, 1);
+
+  document.getElementById("redScore").innerText = data.red;
+  document.getElementById("blueScore").innerText = data.blue;
+  document.getElementById("greenScore").innerText = data.green;
+
+  document.getElementById("redBar").style.width = (data.red / maxScore * 100) + "%";
+  document.getElementById("blueBar").style.width = (data.blue / maxScore * 100) + "%";
+  document.getElementById("greenBar").style.width = (data.green / maxScore * 100) + "%";
+}
+
+setInterval(updateScores, 1000);
+updateScores();
+</script>
+
+</body>
+</html>
