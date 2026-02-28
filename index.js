@@ -1,43 +1,38 @@
-const express = require("express");
-const path = require("path");
+const express = require("express")
+const app = express()
 
-const app = express();
+app.use(express.json())
+app.use(express.static("public"))
 
-app.use(express.json());
-app.use(express.static("public"));
+let gameState = {
+  red: { score: 0, health: 100 },
+  blue: { score: 0, health: 100 },
+  green: { score: 0, health: 100 }
+}
 
-let teams = {
-  red: 0,
-  blue: 0,
-  green: 0
-};
-
-// TikTok webhook
 app.post("/webhook", (req, res) => {
-  const giftValue = req.body?.gift?.value || 1;
+  const giftValue = req.body?.gift?.value || 1
+  const team = ["red", "blue", "green"][Math.floor(Math.random() * 3)]
 
-  const randomTeam = ["red", "blue", "green"][
-    Math.floor(Math.random() * 3)
-  ];
+  gameState[team].score += giftValue * 10
+  gameState[team].health -= giftValue * 2
 
-  teams[randomTeam] += giftValue * 10;
+  if (gameState[team].health < 0) {
+    gameState[team].health = 0
+  }
 
-  res.sendStatus(200);
-});
+  res.sendStatus(200)
+})
 
-// Takım skorlarını gönder
-app.get("/teams", (req, res) => {
-  res.json(teams);
-});
+app.get("/state", (req, res) => {
+  res.json(gameState)
+})
 
-// Ana sayfa
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+  res.sendFile(__dirname + "/public/index.html")
+})
 
-// 🔥 Railway için doğru port ayarı
-const PORT = process.env.PORT;
-
+const PORT = process.env.PORT || 3000
 app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server running on port " + PORT);
-});
+  console.log("Server running on port " + PORT)
+})
